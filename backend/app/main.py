@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
+from app.datasets import router as datasets_router
 
 from app.database import engine
 
@@ -9,6 +10,7 @@ app = FastAPI(
     description="Evidence-driven AI data investigation platform",
     version="0.1.0"
 )
+app.include_router(datasets_router)
 
 
 @app.get("/")
