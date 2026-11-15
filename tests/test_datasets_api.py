@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+import tempfile
 import unittest
 import uuid
 from unittest.mock import patch
@@ -7,6 +9,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+import app.datasets
 from app.database import DATABASE_URL
 from app.models import Dataset
 
@@ -125,6 +128,41 @@ class TestCSVUploadAPI(unittest.TestCase, DatasetAPITestBase):
         with self.TestingSessionLocal() as session:
             dataset = session.get(Dataset, uuid.UUID(dataset_id))
             self.assertEqual(dataset.storage_path, f"data/uploads/{dataset_id}.csv")
+
+    def test_upload_csv_with_upload_dir_outside_project_root(self):
+        """
+        Regression test for Milestone 1.3:
+        Verifies that when UPLOAD_DIR is located outside PROJECT_ROOT,
+        the upload succeeds (HTTP 201), the file is stored at the external
+        path, and storage_path in the database is recorded without raising ValueError.
+        """
+        csv_content = create_valid_csv_content()
+
+        with tempfile.TemporaryDirectory() as outside_temp_dir:
+            outside_upload_dir = Path(outside_temp_dir) / "custom_uploads"
+            with patch.object(app.datasets, "UPLOAD_DIR", outside_upload_dir):
+                response = self.client.post(
+                    "/api/datasets/upload",
+                    files={"file": ("outside.csv", csv_content, "text/csv")}
+                )
+
+                self.assertEqual(response.status_code, 201)
+                data = response.json()
+                dataset_id = uuid.UUID(data["id"])
+
+                # Check file exists in outside upload dir
+                stored_file_path = outside_upload_dir / f"{dataset_id}.csv"
+                self.assertTrue(stored_file_path.exists())
+                self.assertTrue(stored_file_path.is_file())
+                self.assertEqual(stored_file_path.read_bytes(), csv_content)
+
+                # Check database storage_path records the resolved external path
+                with self.TestingSessionLocal() as session:
+                    dataset = session.get(Dataset, dataset_id)
+                    self.assertIsNotNone(dataset)
+                    self.assertEqual(dataset.filename, "outside.csv")
+                    self.assertEqual(dataset.storage_path, str(stored_file_path.resolve()))
+                    self.assertTrue(Path(dataset.storage_path).is_absolute())
 
 
 class TestDatasetListingAPI(unittest.TestCase, DatasetAPITestBase):

@@ -164,7 +164,13 @@ async def upload_csv(
         UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
         storage_path = UPLOAD_DIR / storage_filename
-        relative_storage_path = storage_path.relative_to(PROJECT_ROOT)
+        try:
+            relative_storage_path = storage_path.relative_to(PROJECT_ROOT)
+        except ValueError:
+            try:
+                relative_storage_path = storage_path.resolve().relative_to(PROJECT_ROOT.resolve())
+            except ValueError:
+                relative_storage_path = storage_path.resolve()
 
         # 6. Save CSV file
         storage_path.write_bytes(contents)
