@@ -1,7 +1,9 @@
-
-from fastapi import APIRouter, UploadFile, File, HTTPException
-import pandas as pd
 from io import BytesIO
+
+import pandas as pd
+from fastapi import APIRouter, File, HTTPException, UploadFile
+
+from app.profiling import profile_dataframe
 
 router = APIRouter(
     prefix="/api/datasets",
@@ -75,5 +77,6 @@ async def inspect_csv(file: UploadFile = File(...)):
         "filename": file.filename,
         "total_rows": len(df),
         "total_columns": len(df.columns),
-        "columns": columns
+        "columns": columns,
+        "profile": profile_dataframe(df)
     }
