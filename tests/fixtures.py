@@ -11,7 +11,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.database import DATABASE_URL, Base, get_db
 from app.main import app as fastapi_app
-import app.datasets
+import app.api.datasets
 from app.models import Dataset
 
 
@@ -172,8 +172,8 @@ class DatasetAPITestBase:
         self.temp_upload_dir = self.temp_root / "data" / "uploads"
         self.temp_upload_dir.mkdir(parents=True, exist_ok=True)
 
-        self.patcher_upload = patch.object(app.datasets, "UPLOAD_DIR", self.temp_upload_dir)
-        self.patcher_root = patch.object(app.datasets, "PROJECT_ROOT", self.temp_root)
+        self.patcher_upload = patch.object(app.api.datasets, "UPLOAD_DIR", self.temp_upload_dir)
+        self.patcher_root = patch.object(app.api.datasets, "PROJECT_ROOT", self.temp_root)
         self.patcher_upload.start()
         self.patcher_root.start()
 

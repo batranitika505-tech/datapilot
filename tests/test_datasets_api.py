@@ -9,7 +9,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-import app.datasets
+import app.api.datasets
 from app.database import DATABASE_URL
 from app.models import Dataset
 
@@ -140,7 +140,7 @@ class TestCSVUploadAPI(unittest.TestCase, DatasetAPITestBase):
 
         with tempfile.TemporaryDirectory() as outside_temp_dir:
             outside_upload_dir = Path(outside_temp_dir) / "custom_uploads"
-            with patch.object(app.datasets, "UPLOAD_DIR", outside_upload_dir):
+            with patch.object(app.api.datasets, "UPLOAD_DIR", outside_upload_dir):
                 response = self.client.post(
                     "/api/datasets/upload",
                     files={"file": ("outside.csv", csv_content, "text/csv")}
