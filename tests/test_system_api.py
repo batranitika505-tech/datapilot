@@ -7,6 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app import datasets as datasets_shim
 from app.api.datasets import router as canonical_datasets_router
+from app.database import get_db
 from app.main import app, create_app
 
 
@@ -44,7 +45,11 @@ class TestSystemAPI(unittest.TestCase):
         self.assertIsInstance(new_app, FastAPI)
         self.assertIsNot(new_app, app)
 
-        # Verify client on factory app can access all endpoints
+        mock_db = MagicMock()
+        mock_db.execute.return_value.scalars.return_value.all.return_value = []
+        new_app.dependency_overrides[get_db] = lambda: mock_db
+
+        # Verify client on factory app can access all endpoints without touching development database
         client = TestClient(new_app, raise_server_exceptions=False)
         self.assertEqual(client.get("/").status_code, 200)
         with patch("app.api.system.engine.connect", return_value=MagicMock()):
