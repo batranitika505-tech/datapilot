@@ -353,6 +353,22 @@ class TestDatasetServiceOperations(unittest.TestCase, DatasetAPITestBase):
             self.assertEqual(fetched.id, d1.id)
             self.assertEqual(fetched.filename, "first.csv")
 
+    def test_list_datasets_raises_database_error_on_sqlalchemy_error(self):
+        with self.TestingSessionLocal() as session:
+            with patch.object(session, "execute", side_effect=SQLAlchemyError("DB query failed")):
+                with self.assertRaises(DatasetDatabaseError) as ctx:
+                    list_datasets(session)
+                self.assertEqual(str(ctx.exception), "Failed to retrieve datasets")
+                self.assertIsInstance(ctx.exception.__cause__, SQLAlchemyError)
+
+    def test_get_dataset_raises_database_error_on_sqlalchemy_error(self):
+        with self.TestingSessionLocal() as session:
+            with patch.object(session, "get", side_effect=SQLAlchemyError("DB get failed")):
+                with self.assertRaises(DatasetDatabaseError) as ctx:
+                    get_dataset(session, uuid.uuid4())
+                self.assertEqual(str(ctx.exception), "Failed to retrieve dataset")
+                self.assertIsInstance(ctx.exception.__cause__, SQLAlchemyError)
+
 
 if __name__ == "__main__":
     unittest.main()

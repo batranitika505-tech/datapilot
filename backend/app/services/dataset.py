@@ -168,10 +168,16 @@ def create_dataset(
 def list_datasets(db: Session) -> Sequence[Dataset]:
     """Retrieve all datasets ordered by created_at descending."""
     statement = select(Dataset).order_by(Dataset.created_at.desc())
-    result = db.execute(statement)
-    return result.scalars().all()
+    try:
+        result = db.execute(statement)
+        return result.scalars().all()
+    except SQLAlchemyError as exc:
+        raise DatasetDatabaseError("Failed to retrieve datasets") from exc
 
 
 def get_dataset(db: Session, dataset_id: uuid.UUID) -> Dataset | None:
     """Retrieve a dataset by its UUID, or None if not found."""
-    return db.get(Dataset, dataset_id)
+    try:
+        return db.get(Dataset, dataset_id)
+    except SQLAlchemyError as exc:
+        raise DatasetDatabaseError("Failed to retrieve dataset") from exc

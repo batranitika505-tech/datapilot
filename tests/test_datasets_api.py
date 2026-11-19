@@ -434,6 +434,32 @@ class TestDatasetDatabaseFailureAPI(unittest.TestCase, DatasetAPITestBase):
                 # 4. Verify transaction was rolled back and no record was saved in DB
                 self.assertEqual(self.count_datasets_in_db(), 0)
 
+    def test_list_datasets_database_failure_returns_500(self):
+        with patch.object(Session, "execute", side_effect=SQLAlchemyError("Simulated list query failure")):
+            response = self.client.get("/api/datasets/")
+            self.assertEqual(response.status_code, 500)
+            self.assertEqual(response.headers["content-type"], "application/json")
+            self.assertEqual(response.json()["detail"], "Failed to retrieve datasets")
+
+    def test_get_dataset_database_failure_returns_500(self):
+        valid_id = uuid.uuid4()
+        with patch.object(Session, "get", side_effect=SQLAlchemyError("Simulated get query failure")):
+            response = self.client.get(f"/api/datasets/{valid_id}")
+            self.assertEqual(response.status_code, 500)
+            self.assertEqual(response.headers["content-type"], "application/json")
+            self.assertEqual(response.json()["detail"], "Failed to retrieve dataset")
+
+    def test_unexpected_exception_returns_json_500(self):
+        from fastapi.testclient import TestClient
+        from app.main import app as fastapi_app
+
+        client = TestClient(fastapi_app, raise_server_exceptions=False)
+        with patch("app.services.dataset.list_datasets", side_effect=RuntimeError("Unexpected unhandled internal error")):
+            response = client.get("/api/datasets/")
+            self.assertEqual(response.status_code, 500)
+            self.assertEqual(response.headers["content-type"], "application/json")
+            self.assertEqual(response.json(), {"detail": "Internal server error"})
+
 
 class TestDatasetTestDatabaseSafety(unittest.TestCase):
     """Tests ensuring test database isolation and safety constraints."""

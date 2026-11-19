@@ -116,7 +116,10 @@ async def upload_csv(
 
 @router.get("/", response_model=list[DatasetSummary])
 def list_datasets(db: Session = Depends(get_db)):
-    return dataset_service.list_datasets(db)
+    try:
+        return dataset_service.list_datasets(db)
+    except DatasetDatabaseError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.get("/{dataset_id}", response_model=DatasetDetail)
@@ -124,7 +127,11 @@ def get_dataset(
     dataset_id: uuid.UUID,
     db: Session = Depends(get_db)
 ):
-    dataset = dataset_service.get_dataset(db, dataset_id)
+    try:
+        dataset = dataset_service.get_dataset(db, dataset_id)
+    except DatasetDatabaseError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
     if dataset is None:
         raise HTTPException(
             status_code=404,
